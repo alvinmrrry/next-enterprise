@@ -266,7 +266,7 @@ export default function DynamicIslandTodo() {
 
   return (
     <motion.div
-      className={`container fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 dynamic-island-todo`}
+      className={`container fixed left-20 top-50 z-50 dynamic-island-todo`}
       initial={false}
       animate={{
         width: isExpanded ? "var(--di-expanded-width)" : "var(--di-collapsed-width)",
