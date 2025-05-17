@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Pencil, Plus, X, Check, RotateCcw, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -96,14 +95,15 @@ export default function DynamicIslandTodo() {
   }, [toast])
 
   // Optimized add todo function with optimistic updates
-  const addTodo = async () => {
+  const addTodo = useCallback(async () => {
     if (newTodo.trim() === "") return
 
     try {
       setOpState((prev) => ({ ...prev, adding: true }))
 
       // Create temporary ID for optimistic update
-      const tempId = Date.now()
+      // Use a negative ID to avoid conflict with Supabase auto-incrementing IDs
+      const tempId = -Date.now()
       const tempTodo = { id: tempId, text: newTodo, completed: false }
 
       // Optimistically update UI
@@ -125,10 +125,13 @@ export default function DynamicIslandTodo() {
           description: "Could not add new todo. Please try again later.",
           variant: "destructive",
         })
-        console.error("Error adding todo:", error)
+        console.error("Error adding todo:", JSON.stringify(error))
+      } else if (data && data.length > 0) {
+        // Replace temporary todo with the actual one from the server
+        setTodos((prev) => prev.map((todo) => (todo.id === tempId ? data[0] : todo)))
       }
     } catch (error) {
-      console.error("Error adding todo:", error)
+      console.error("Error adding todo:", JSON.stringify(error))
       toast({
         title: "Failed to add",
         description: "Could not add new todo. Please try again later.",
@@ -137,10 +140,10 @@ export default function DynamicIslandTodo() {
     } finally {
       setOpState((prev) => ({ ...prev, adding: false }))
     }
-  }
+  }, [newTodo, toast]) // Added newTodo and toast to dependencies
 
   // Optimized toggle todo function with optimistic updates
-  const toggleTodo = async (id: number, completed: boolean) => {
+  const toggleTodo = useCallback(async (id: number, completed: boolean) => {
     try {
       // Set specific todo's toggling state
       setOpState((prev) => ({
@@ -162,10 +165,10 @@ export default function DynamicIslandTodo() {
           description: "Could not update todo status. Please try again later.",
           variant: "destructive",
         })
-        console.error("Error toggling todo:", error)
+        console.error("Error toggling todo:", JSON.stringify(error))
       }
     } catch (error) {
-      console.error("Error toggling todo:", error)
+      console.error("Error toggling todo:", JSON.stringify(error))
       toast({
         title: "Failed to update",
         description: "Could not update todo status. Please try again later.",
@@ -177,10 +180,10 @@ export default function DynamicIslandTodo() {
         toggling: { ...prev.toggling, [id]: false },
       }))
     }
-  }
+  }, [toast]) // Added toast to dependencies
 
   // Optimized remove todo function with optimistic updates
-  const removeTodo = async (id: number) => {
+  const removeTodo = useCallback(async (id: number) => {
     try {
       // Set specific todo's removing state
       setOpState((prev) => ({
@@ -207,10 +210,10 @@ export default function DynamicIslandTodo() {
           description: "Could not delete todo. Please try again later.",
           variant: "destructive",
         })
-        console.error("Error removing todo:", error)
+        console.error("Error removing todo:", JSON.stringify(error))
       }
     } catch (error) {
-      console.error("Error removing todo:", error)
+      console.error("Error removing todo:", JSON.stringify(error))
       toast({
         title: "Failed to delete",
         description: "Could not delete todo. Please try again later.",
@@ -222,21 +225,24 @@ export default function DynamicIslandTodo() {
         removing: { ...prev.removing, [id]: false },
       }))
     }
-  }
+  }, [todos, toast]) // Added todos and toast to dependencies
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       addTodo()
     }
-  }
+  }, [addTodo]) // Added addTodo to dependencies
 
-  const sortedTodos = [...todos].sort((a, b) => {
-    if (a.completed === b.completed) return 0
-    return a.completed ? 1 : -1
-  })
+  const sortedTodos = React.useMemo(() => {
+    return [...todos].sort((a, b) => {
+      if (a.completed === b.completed) return 0
+      return a.completed ? 1 : -1
+    })
+  }, [todos])
 
-  const completedTodos = todos.filter((todo) => todo.completed).length
-  const remainingTodos = todos.length - completedTodos
+  const completedTodos = React.useMemo(() => todos.filter((todo) => todo.completed).length, [todos])
+  const remainingTodos = React.useMemo(() => todos.length - completedTodos, [todos, completedTodos])
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
