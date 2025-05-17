@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
+import "@/styles/DynamicIslandTodo.css";
 
 // Operation state interface
 interface OperationState {
@@ -78,7 +79,7 @@ export default function DynamicIslandTodo() {
     // Set up realtime subscription
     const subscription = supabase
       .channel("todos-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "todos" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "todos" }, (payload: any) => {
         if (payload.eventType === "INSERT") {
           setTodos((prev) => [...prev, payload.new as Todo])
         } else if (payload.eventType === "UPDATE") {
@@ -265,7 +266,7 @@ export default function DynamicIslandTodo() {
 
   return (
     <motion.div
-      className="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 dynamic-island-todo"
+      className={`container fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 dynamic-island-todo`}
       initial={false}
       animate={{
         width: isExpanded ? "var(--di-expanded-width)" : "var(--di-collapsed-width)",
